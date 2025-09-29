@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DATABASE LARIONOV</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <h1>DATABASE LARIONOV</h1>
+        <p>KABANOV ROMAN ISP-412</p>
+      </header>
+
+      <section class="card">
+        <form id="create-form">
+          <input id="name" placeholder="Name" required />
+          <input id="description" placeholder="Description" />
+          <button type="submit">Add</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Items</h2>
+        <ul id="items"></ul>
+      </section>
+    </div>
+
+    <script>
+      async function refresh() {
+        const res = await fetch('/api/items');
+        const items = await res.json();
+        const list = document.getElementById('items');
+        list.innerHTML = '';
+        items.forEach((i) => {
+          const li = document.createElement('li');
+          li.className = 'item';
+          li.innerHTML = `
+            <div>
+              <b>${i.name}</b>
+              <p>${i.description ?? ''}</p>
+            </div>
+            <div class="actions">
+              <button data-id="${i.id}" class="edit">Edit</button>
+              <button data-id="${i.id}" class="danger">Delete</button>
+            </div>`;
+          list.appendChild(li);
+        });
+
+        // Wire actions
+        document.querySelectorAll('button.edit').forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.getAttribute('data-id');
+            const name = prompt('New name:');
+            if (!name) return;
+            const description = prompt('New description:') ?? '';
+            await fetch(`/api/items/${id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, description }),
+            });
+            await refresh();
+          };
+        });
+        document.querySelectorAll('button.danger').forEach((btn) => {
+          btn.onclick = async () => {
+            const id = btn.getAttribute('data-id');
+            await fetch(`/api/items/${id}`, { method: 'DELETE' });
+            await refresh();
+          };
+        });
+      }
+
+      document.getElementById('create-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('name').value.trim();
+        const description = document.getElementById('description').value.trim();
+        if (!name) return;
+        await fetch('/api/items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, description }),
+        });
+        e.target.reset();
+        await refresh();
+      });
+
+      refresh();
+    </script>
+  </body>
+  </html>
+
+
